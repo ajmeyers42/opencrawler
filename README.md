@@ -30,6 +30,7 @@ FAQ.md                              # Question index
 docs/migration-overview.md          # ECH 8.19 → 9.x crawler narrative
 artifacts/crawler/                  # Open Crawler patterns
 artifacts/search-analytics/         # Behavioral Analytics parity (FAQ-002)
+artifacts/search-apps/              # Migration Q&A pack (FAQ-003)
 templates/                          # Artifact and customer-branch templates
 ```
 

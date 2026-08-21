@@ -12,6 +12,7 @@ How to add entries: [CONTRIBUTING.md](CONTRIBUTING.md). Overview: [docs/migratio
 |----|--------|----------|
 | [FAQ-001](#faq-001) | Multi-locale site: one locale works in Open Crawler, siblings do not | [artifacts/crawler/multi-locale-support](artifacts/crawler/multi-locale-support/) |
 | [FAQ-002](#faq-002) | Behavioral Analytics parity when moving App Search crawler → Open Crawler on ECH 9.x | [artifacts/search-analytics/behavioral-analytics-parity](artifacts/search-analytics/behavioral-analytics-parity/) |
+| [FAQ-003](#faq-003) | Common App Search → Open Crawler / 9.x Q&A (analyzers, schema fields, ILM, dynamic mapping, Data Views) | [artifacts/search-apps/migration-qa-pack](artifacts/search-apps/migration-qa-pack/) |
 
 ---
 
@@ -63,4 +64,30 @@ Do **not** use OpenTelemetry browser RUM as the production BA replacement (tech 
 - [Kibana 9.0 breaking changes](https://www.elastic.co/docs/release-notes/kibana/breaking-changes) — Behavioral Analytics removed from UI
 - [Elasticsearch deprecations](https://www.elastic.co/docs/release-notes/elasticsearch/deprecations) — Behavioral Analytics CRUD APIs
 - [Search UI Analytics Plugin](https://www.elastic.co/docs/reference/search-ui/api-core-plugins-analytics-plugin) — discontinued in 9.0
+- [docs/migration-overview.md](docs/migration-overview.md)
+
+---
+
+## FAQ-003
+
+**Question:** During an App Search / Elastic crawler → Open Crawler move on Elastic 9.x, what changes for index templates (special characters, App Search derived fields), ILM tiers, dynamic mapping, Behavioral Analytics, and Kibana Data Views?
+
+**Resolution:** These come up as a pack on most migrations:
+
+1. **Special characters** — Avoid a global `pattern_replace` that only keeps `.` `/` `-` on free-text fields; use targeted char filters / per-field analyzers and validate with the Analyze API.
+2. **App Search `delimiter` / `enum` / `joined` / `prefix` / `stem`** — Do not recreate 1:1; replace behaviors with `keyword`, stemming analyzers, `search_as_you_type` / edge n-grams, and delimiter token filters as needed.
+3. **ILM** — Policy “enabled” ≠ tier moves; confirm attach, timing, and that warm/cold/frozen nodes exist (many ECH deployments are hot-only).
+4. **Dynamic mapping** — Crawler templates often prefer static schemas for stable search apps; dynamic or selective dynamic templates remain optional.
+5. **Behavioral Analytics on 9.x** — No drop-in UI; see [FAQ-002](#faq-002).
+6. **Data Views** — For classic Discover/Lens over crawl indices; not required for ES\|QL panels.
+
+**Artifacts**
+
+- Sanitized pattern: [artifacts/search-apps/migration-qa-pack](artifacts/search-apps/migration-qa-pack/) — [customer-responses.md](artifacts/search-apps/migration-qa-pack/customer-responses.md) (paste-ready table), plus per-topic detail files
+
+**References**
+
+- [Migrating to 9.x from Enterprise Search 8.x](https://www.elastic.co/guide/en/enterprise-search/8.19/upgrading-to-9-x.html)
+- [Mixing exact search with stemming](https://www.elastic.co/docs/solutions/search/full-text/search-relevance/mixing-exact-search-with-stemming)
+- [Kibana data views](https://www.elastic.co/docs/explore-analyze/find-and-organize/data-views)
 - [docs/migration-overview.md](docs/migration-overview.md)

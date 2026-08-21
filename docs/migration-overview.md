@@ -29,4 +29,4 @@ Connectors, Workplace Search sources, and App Search relevance/engines are **out
 
 ## This repo
 
-Worked answers live in [FAQ.md](../FAQ.md) and `artifacts/`. Start with crawler locale parity ([FAQ-001](../FAQ.md#faq-001)) and Behavioral Analytics parity on ECH 9.x ([FAQ-002](../FAQ.md#faq-002)).
+Worked answers live in [FAQ.md](../FAQ.md) and `artifacts/`. Start with crawler locale parity ([FAQ-001](../FAQ.md#faq-001)), Behavioral Analytics parity on ECH 9.x ([FAQ-002](../FAQ.md#faq-002)), and the common migration Q&A pack ([FAQ-003](../FAQ.md#faq-003)).

@@ -18,7 +18,7 @@ During App Search / Elastic crawler → Open Crawler migrations on ECH 9.x, cust
 | 2 | App Search `delimiter` / `enum` / `joined` / `prefix` / `stem` fields | HIGH | [02-app-search-derived-fields.md](./02-app-search-derived-fields.md) |
 | 3 | ILM not moving data across tiers | MEDIUM | [03-ilm-tiers.md](./03-ilm-tiers.md) |
 | 4 | Dynamic mapping vs static crawler templates | MEDIUM | [04-dynamic-vs-static-mapping.md](./04-dynamic-vs-static-mapping.md) |
-| 5 | Behavioral Analytics on 9.x | LOW | [FAQ-002](../../../FAQ.md#faq-002) · [behavioral-analytics-parity](../../search-analytics/behavioral-analytics-parity/) |
+| 5 | Behavioral Analytics on 9.x | LOW | [FAQ-002](../../../FAQ.md#faq-002) · [behavioral-analytics-parity](../../search-analytics/behavioral-analytics-parity/) · [additional-analytics.md](../../search-analytics/behavioral-analytics-parity/additional-analytics.md) |
 | 6 | Typical Data View use cases | LOW | [06-data-views.md](./06-data-views.md) |
 
 ## Customer-facing one-liners

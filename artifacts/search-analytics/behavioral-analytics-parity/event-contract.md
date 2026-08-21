@@ -2,6 +2,8 @@
 
 Replace 8.19 Behavioral Analytics tracker / `@elastic/search-ui-analytics-plugin` with first-party events that map 1:1 to the old mental model.
 
+Reporting for these events is **ES|QL queries and Kibana dashboards only** — there is no Behavioral Analytics Kibana UI on 9.x to configure collections or charts.
+
 ## Event types (parity with 8.19)
 
 | `event.action` | When to emit | Required fields |

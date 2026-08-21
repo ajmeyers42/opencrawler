@@ -8,7 +8,7 @@ Enterprise Search (App Search, Workplace Search, Elastic Web Crawler, managed/na
 |----------------------|-------------------|--------|
 | Elastic / App Search Web Crawler | [Open Crawler](https://github.com/elastic/crawler) | Config-as-code YAML; run on customer infra |
 | Crawler schedules / Kibana UI | External scheduler + Open Crawler CLI (schedules evolving) | Treat config as code / CI |
-| Behavioral Analytics (collections, tracker, Kibana UI) | First-party events data stream + ingest API + ES\|QL dashboards | Removed from Kibana in 9.0; APIs deprecated — see [FAQ-002](../FAQ.md#faq-002). Open Crawler does **not** replace this. |
+| Behavioral Analytics (collections, tracker, Kibana UI) | First-party events + ingest API + **ES\|QL queries/dashboards** (no BA app); optional EDOT latency | Removed from Kibana in 9.0; APIs deprecated — see [FAQ-002](../FAQ.md#faq-002) and [additional-analytics.md](../artifacts/search-analytics/behavioral-analytics-parity/additional-analytics.md). Open Crawler does **not** replace this. Analytics is **not** enabled via a Kibana UI. |
 
 Connectors, Workplace Search sources, and App Search relevance/engines are **out of scope** here. Use the official 9.x migration guide for those.
 

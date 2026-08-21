@@ -1,0 +1,240 @@
+# Sanitized Open Crawler pattern: multi-locale support site
+# Host and index names are personas — replace for your environment.
+# Key fixes vs naive ES→OC migration dumps:
+#   1) Explicit seed_urls per locale
+#   2) Derive crawled_country / crawled_language from the URL (never hardcode)
+#   3) Locale-aware extraction url_filters (regex / contains), not begins:/product/...
+
+domains:
+  - url: https://support.example.com
+    seed_urls:
+      - https://support.example.com/us/en
+      - https://support.example.com/uk/en
+      - https://support.example.com/mx/en
+    sitemap_urls:
+      - https://support.example.com/sitemap_us.xml
+      - https://support.example.com/sitemap_mx.xml
+      - https://support.example.com/sitemap_uk.xml
+    crawl_rules:
+      - policy: deny
+        type: regex
+        pattern: \/[^\/]+\/[^\/]+\/product\/[^\/]+\/article\/([^\/]+)\?[Pp][Aa][Ag][Ee]=\d+$
+      - policy: deny
+        type: regex
+        pattern: \/.*\/documents\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+
+      - policy: deny
+        type: regex
+        pattern: \/.*\/.*\/product\/(?!shades\/).*\/component
+      - policy: deny
+        type: regex
+        pattern: \/node\/.*
+      - policy: allow
+        type: regex
+        pattern: .*
+    extraction_rulesets:
+      # Component pages: /{cc}/{lang}/product/{family}/component/...
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/product\/[^\/]+\/component
+        rules:
+          - action: set
+            field_name: crawled_content_type
+            selector: div
+            value: component
+            source: html
+          - action: extract
+            field_name: crawled_content_filter
+            selector: span[class*='modelFamilyCategory'], span[class*='modelFamily'], span[class*='modelName']
+            join_as: array
+            source: html
+          - action: extract
+            field_name: crawled_content_component_image
+            selector: //li[@class='filter-modal-container']//a[contains(@class, 'active')]/@data-model-image[last()]
+            join_as: array
+            source: html
+          - action: extract
+            field_name: crawled_content_body
+            selector: div[class*='tab-content'] div[class*='tab-pane'][class*='active'][id*='-tab-pane'] div[class*='all-']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_content_category
+            selector: ul[class*='subtab'] > li[class='nav-level-2'] > a[class*='active']
+            join_as: string
+            source: html
+
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/product\/[^\/]+\/documents
+        rules:
+          - action: extract
+            field_name: crawled_content_body
+            selector: div[class*='tab-content'] div[class*='tab-pane'][class*='active'][id*='-tab-pane'] div[class*='all-']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_content_category
+            selector: ul[class*='subtab'] > li[class='nav-level-2'] > a[class*='active']
+            join_as: string
+            source: html
+
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/product\/[^\/]+\/videos
+        rules:
+          - action: extract
+            field_name: crawled_content_body
+            selector: div[class*='tab-content'] div[class*='tab-pane'][class*='active'][id*='-tab-pane'] div[class*='all-']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_content_category
+            selector: ul[class*='subtab'] > li[class='nav-level-2'] > a[class*='active']
+            join_as: string
+            source: html
+
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/product\/[^\/]+\/faqs
+        rules:
+          - action: extract
+            field_name: crawled_content_body
+            selector: div[class*='tab-content'] div[class*='tab-pane'][class*='active'][id*='-tab-pane'] div[class*='all-']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_content_category
+            selector: ul[class*='subtab'] > li[class='nav-level-2'] > a[class*='active']
+            join_as: string
+            source: html
+
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/product\/[^\/]+\/article\/
+        rules:
+          - action: extract
+            field_name: crawled_content_body
+            selector: section[class*='knowledge-list-container'] + section[class*='tab-content-container'] div[class*='article-body']
+            join_as: string
+            source: html
+          - action: set
+            field_name: crawled_content_type
+            selector: div
+            value: article
+            source: html
+          - action: extract
+            field_name: crawled_content_category
+            selector: ul[class*='knowledge-list'] li[class*='article-category'][class*='active']
+            join_as: string
+            source: html
+
+      - url_filters:
+          - type: contains
+            pattern: /instructions/
+        rules:
+          - action: set
+            field_name: crawled_content_type
+            selector: div
+            value: microinstall
+            source: html
+          - action: set
+            field_name: crawled_content_category
+            selector: div
+            value: Installation Guide
+            source: html
+
+      - url_filters:
+          - type: regex
+            pattern: \/[^\/]+\/[^\/]+\/product\/[^\/]+\/article\/([^\/]+)$
+        rules:
+          - action: extract
+            field_name: crawled_content_body
+            selector: section[class*='knowledge-list-container'] + section[class*='tab-content-container']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawler_show_more_text
+            selector: section[class*='knowledge-list-container'] + section[class*='tab-content-container'] ul[class*='tab-app-content'] div[class*='more-container'] span span
+            join_as: string
+            source: html
+
+      # Catch-all: shared chrome + locale derived from URL path /{country}/{language}/...
+      - url_filters:
+        rules:
+          - action: extract
+            field_name: crawled_site_header
+            selector: header[class*='page-header']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_site_footer
+            selector: footer[role*='contentinfo']
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_canonical
+            selector: //link[@rel='canonical']/@href
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_asset_urls
+            selector: //a[starts-with(@href, 'https://assets.example.com/a/documents/')]/@href
+            join_as: array
+            source: html
+          # Derive locale — do NOT hardcode country/language
+          - action: extract
+            field_name: crawled_country
+            selector: "support\\.example\\.com/([a-z]{2})/"
+            source: url
+            join_as: string
+          - action: extract
+            field_name: crawled_language
+            selector: "support\\.example\\.com/[a-z]{2}/([a-z]{2})"
+            source: url
+            join_as: string
+          - action: set
+            field_name: crawled_sitename
+            selector: div
+            value: support
+            source: html
+          - action: set
+            field_name: crawled_content_source
+            selector: div
+            value: website
+            source: html
+          - action: extract
+            field_name: crawled_content_image
+            selector: //meta[@property='og:image']/@content
+            join_as: string
+            source: html
+          - action: extract
+            field_name: crawled_images_alt
+            selector: //img/@alt
+            join_as: array
+            source: html
+          - action: extract
+            field_name: crawled_additional_headers
+            selector: h2, h3
+            join_as: array
+            source: html
+          - action: extract
+            field_name: crawled_header
+            selector: h1
+            join_as: array
+            source: html
+
+output_sink: elasticsearch
+output_index: search-crawler-support
+max_crawl_depth: 10
+full_html_extraction_enabled: false
+
+elasticsearch:
+  host: ""
+  api_key: ""
+  pipeline: search-crawler-support@custom
+  pipeline_enabled: true
+
+# Optional: while validating, switch to:
+# output_sink: file
+# output_dir: /config/results/multi-locale
+# and set max_crawl_depth: 2 with only the three locale seeds.

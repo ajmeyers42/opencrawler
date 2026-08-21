@@ -1,0 +1,80 @@
+{
+  "index_patterns": ["logs-search_analytics.events-*"],
+  "data_stream": {},
+  "priority": 200,
+  "composed_of": [],
+  "template": {
+    "settings": {
+      "index": {
+        "lifecycle": {
+          "name": "search-analytics-hot"
+        },
+        "number_of_shards": 1,
+        "number_of_replicas": 1,
+        "default_pipeline": "search-analytics-default"
+      }
+    },
+    "mappings": {
+      "dynamic": "false",
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "event": {
+          "properties": {
+            "action": { "type": "keyword" },
+            "dataset": { "type": "keyword" },
+            "ingested": { "type": "date" }
+          }
+        },
+        "session": {
+          "properties": {
+            "id": { "type": "keyword" }
+          }
+        },
+        "user": {
+          "properties": {
+            "anonymous_id": { "type": "keyword" }
+          }
+        },
+        "page": {
+          "properties": {
+            "url": { "type": "keyword", "ignore_above": 2048 },
+            "title": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } } },
+            "referrer": { "type": "keyword", "ignore_above": 2048 }
+          }
+        },
+        "search": {
+          "properties": {
+            "query": {
+              "type": "text",
+              "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } }
+            },
+            "filters": { "type": "flattened" },
+            "result_count": { "type": "long" },
+            "zero_results": { "type": "boolean" },
+            "click_position": { "type": "integer" },
+            "search_application": { "type": "keyword" }
+          }
+        },
+        "document": {
+          "properties": {
+            "id": { "type": "keyword" },
+            "title": {
+              "type": "text",
+              "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } }
+            }
+          }
+        },
+        "labels": {
+          "properties": {
+            "engagement_slug": { "type": "keyword" },
+            "environment": { "type": "keyword" }
+          }
+        }
+      }
+    }
+  },
+  "_meta": {
+    "description": "Search analytics events replacing 8.19 Behavioral Analytics collections (sanitized pattern)",
+    "faq": "FAQ-002"
+  }
+}

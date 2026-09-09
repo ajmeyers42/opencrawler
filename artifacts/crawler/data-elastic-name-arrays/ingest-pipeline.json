@@ -1,0 +1,13 @@
+{
+  "description": "Promote staged array fields (collected by extraction rules) over the single-string values produced by Open Crawler's built-in data-elastic-name handler. Add one rename processor per field that needs array behaviour.",
+  "processors": [
+    {
+      "rename": {
+        "description": "Promote pdp_variant_label_list array over single-string pdp_variant_label. Replace field names to match your data-elastic-name values.",
+        "field": "pdp_variant_label_list",
+        "target_field": "pdp_variant_label",
+        "ignore_missing": true
+      }
+    }
+  ]
+}

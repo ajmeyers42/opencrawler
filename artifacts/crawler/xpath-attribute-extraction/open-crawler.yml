@@ -1,0 +1,60 @@
+# Sanitized Open Crawler pattern: XPath attribute extraction workaround
+# Host, index, and field names are placeholders — replace for your environment.
+#
+# WHY: Open Crawler v0.3.0+ uses Jsoup with TextNode.java_class as the XPath
+# target type. Attribute-axis selectors (/@attr-name) return Attribute nodes,
+# not TextNodes, so they silently yield an empty array.
+# Source: elastic/crawler lib/crawler/data/crawl_result/html.rb (v1.0.0)
+# https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/data/crawl_result/html.rb
+#
+# WORKAROUND: Store full page HTML with full_html_extraction_enabled: true,
+# then extract attribute values in an ingest pipeline (see ingest-pipeline.json).
+#
+# AFFECTED VERSIONS: v0.3.0 – v1.0.0. v0.2.1 used Nokogiri (not affected,
+# but also predates several commonly used features).
+
+# Step 1: enable raw HTML storage
+full_html_extraction_enabled: true
+
+output_sink: elasticsearch
+output_index: search-crawler-example
+max_crawl_depth: 10
+
+elasticsearch:
+  host: ""
+  api_key: ""
+  # Step 2: reference the pipeline that extracts attribute values and removes full_html
+  pipeline: extract-html-attributes
+  pipeline_enabled: true
+
+domains:
+  - url: https://support.example.com
+    seed_urls:
+      - https://support.example.com/us/en/products
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /us/en
+      - policy: deny
+        type: regex
+        pattern: .*
+
+    # Extraction rules can still be used for text-content fields as normal.
+    # Attribute-axis XPath selectors are NOT usable here — use the ingest
+    # pipeline (ingest-pipeline.json) for those instead.
+    extraction_rulesets:
+      - url_filters:
+          - type: regex
+            pattern: ^\/[^\/]+\/[^\/]+\/products\/
+        rules:
+          - action: extract
+            field_name: crawled_content_type
+            # CSS and text-targeting XPath selectors work fine
+            selector: "[data-content-type]"
+            join_as: string
+            source: html
+
+# Optional: while validating, switch output_sink to file and limit depth:
+# output_sink: file
+# output_dir: /config/results/xpath-attr
+# max_crawl_depth: 1

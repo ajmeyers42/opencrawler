@@ -1,0 +1,67 @@
+# Sanitized Open Crawler pattern: data-elastic-name multi-value array workaround
+# Host, index, and field names are placeholders — replace for your environment.
+#
+# WHY: Open Crawler v0.3.0+ collects data-elastic-name values into a Ruby hash
+# with plain assignment — last value wins when multiple elements share the same
+# attribute name. Additionally, meta_tags_and_data_attributes merges AFTER
+# extraction_rule_fields in document_mapper.rb, so a same-name extraction rule
+# is always overwritten by the built-in single-string value.
+# Sources:
+#   elastic/crawler lib/crawler/data/crawl_result/html.rb (v1.0.0)
+#   elastic/crawler lib/crawler/document_mapper.rb (v1.0.0)
+#   https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/data/crawl_result/html.rb
+#   https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/document_mapper.rb
+#
+# WORKAROUND: Use a staging field name (suffix _list) in the extraction rule to
+# avoid the merge-order collision. The ingest pipeline (ingest-pipeline.json)
+# renames the staging array over the single-string built-in value.
+#
+# AFFECTED VERSIONS: v0.3.0 – v1.0.0. v0.2.1 predates data-elastic-name support.
+
+output_sink: elasticsearch
+output_index: search-crawler-example
+max_crawl_depth: 10
+
+elasticsearch:
+  host: ""
+  api_key: ""
+  # Pipeline renames staging fields to final names, overwriting single-string values
+  pipeline: fix-data-elastic-name-arrays
+  pipeline_enabled: true
+
+domains:
+  - url: https://support.example.com
+    seed_urls:
+      - https://support.example.com/us/en/products
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /us/en
+      - policy: deny
+        type: regex
+        pattern: .*
+
+    extraction_rulesets:
+      - url_filters: []  # apply to all URLs under this domain; scope with type/pattern if needed
+        rules:
+          # PATTERN: one rule per data-elastic-name field that needs array behaviour.
+          # Use a _list staging name — the ingest pipeline promotes it to the final name.
+          #
+          # Replace 'pdp_variant_label' with your actual data-elastic-name value.
+          - action: extract
+            field_name: pdp_variant_label_list
+            selector: "[data-elastic-name='pdp_variant_label']"
+            join_as: array
+            source: html
+
+          # Additional example — add one block per field:
+          # - action: extract
+          #   field_name: product_features_list
+          #   selector: "[data-elastic-name='product_features']"
+          #   join_as: array
+          #   source: html
+
+# Optional: while validating without the pipeline, switch output_sink to file:
+# output_sink: file
+# output_dir: /config/results/den-arrays
+# max_crawl_depth: 1

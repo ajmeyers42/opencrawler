@@ -13,6 +13,8 @@ How to add entries: [CONTRIBUTING.md](CONTRIBUTING.md). Overview: [docs/migratio
 | [FAQ-001](#faq-001) | Multi-locale site: one locale works in Open Crawler, siblings do not | [artifacts/crawler/multi-locale-support](artifacts/crawler/multi-locale-support/) |
 | [FAQ-002](#faq-002) | Behavioral Analytics parity when moving App Search crawler → Open Crawler on ECH 9.x | [artifacts/search-analytics/behavioral-analytics-parity](artifacts/search-analytics/behavioral-analytics-parity/) |
 | [FAQ-003](#faq-003) | Common App Search → Open Crawler / 9.x Q&A (analyzers, schema fields, ILM, dynamic mapping, Data Views) | [artifacts/search-apps/migration-qa-pack](artifacts/search-apps/migration-qa-pack/) |
+| [FAQ-004](#faq-004) | XPath attribute-axis selectors return empty array in Open Crawler | [artifacts/crawler/xpath-attribute-extraction](artifacts/crawler/xpath-attribute-extraction/) |
+| [FAQ-005](#faq-005) | `data-elastic-name` multi-value fields return single string instead of array | [artifacts/crawler/data-elastic-name-arrays](artifacts/crawler/data-elastic-name-arrays/) |
 
 ---
 
@@ -94,3 +96,59 @@ Do **not** use OpenTelemetry browser RUM as the production BA replacement (tech 
 - [Mixing exact search with stemming](https://www.elastic.co/docs/solutions/search/full-text/search-relevance/mixing-exact-search-with-stemming)
 - [Kibana data views](https://www.elastic.co/docs/explore-analyze/find-and-organize/data-views)
 - [docs/migration-overview.md](docs/migration-overview.md)
+
+## FAQ-004
+
+**Question:** An XPath extraction rule that selects an HTML element **attribute** (e.g. `//*[@class='product-variant_list']/@data-attribute-type`) worked in the Enterprise Search crawler but returns an empty array in Open Crawler. Why?
+
+**Resolution:** Open Crawler v0.3.0+ switched from Nokogiri to Jsoup for HTML parsing. Its `extract_by_xpath_selector` method hardcodes `TextNode.java_class` as the target node type, so attribute-axis selectors silently return nothing — the crawler only yields text nodes, never attribute nodes. The XPath itself is valid; it just resolves to the wrong node type at the JVM layer.
+
+Workaround — two steps:
+
+1. Set `full_html_extraction_enabled: true` in the crawler config. This stores raw page HTML in the `full_html` field of every indexed document.
+2. Add an Elasticsearch ingest pipeline with a Painless script that regex-extracts the attribute values from `full_html`, writes them to the target field, then removes `full_html` to avoid index bloat.
+
+No page changes required. Confirmed on Open Crawler v0.3.0 – v1.0.0 (all ES 9.x-compatible releases). v0.2.1 (the ES 9.x minimum) used Nokogiri and was not affected, but also predates several other features.
+
+**Artifacts**
+
+- Sanitized pattern: [artifacts/crawler/xpath-attribute-extraction](artifacts/crawler/xpath-attribute-extraction/) — [README](artifacts/crawler/xpath-attribute-extraction/README.md), [open-crawler.yml](artifacts/crawler/xpath-attribute-extraction/open-crawler.yml), [ingest-pipeline.json](artifacts/crawler/xpath-attribute-extraction/ingest-pipeline.json), [diagnostics](artifacts/crawler/xpath-attribute-extraction/diagnostics.md)
+
+**References**
+
+- [elastic/crawler — `html.rb` `extract_by_xpath_selector` (v1.0.0)](https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/data/crawl_result/html.rb)
+- [Jsoup `selectXpath` docs](https://jsoup.org/apidocs/org/jsoup/nodes/Element.html#selectXpath(java.lang.String,java.lang.Class))
+- [Open Crawler config reference — `full_html_extraction_enabled`](https://github.com/elastic/crawler/blob/v1.0.0/docs/CONFIG.md)
+- [Elasticsearch ingest pipelines — script processor](https://www.elastic.co/docs/reference/enrich-processor/script-processor)
+- [docs/migration-overview.md](docs/migration-overview.md)
+
+---
+
+## FAQ-005
+
+**Question:** Fields extracted via `data-elastic-name` HTML attributes returned arrays of strings in the Enterprise Search crawler. Open Crawler returns only a single string. Why, and how do we restore array behaviour?
+
+**Resolution:** Open Crawler v0.3.0+ collects `data-elastic-name` values into a Ruby hash with plain assignment (`extractions[name] = value`). When multiple elements share the same attribute name, each iteration overwrites the previous, leaving only the last element's text.
+
+There is a secondary complication: in `document_mapper.rb`, `meta_tags_and_data_attributes` (which calls the built-in handler) merges **after** `extraction_rule_fields`. An extraction rule with the same field name is overwritten by the single-string value before the document is indexed.
+
+Workaround — two steps:
+
+1. Add an extraction rule using a CSS selector (`[data-elastic-name='field_name']`) with `join_as: array` and a **staging field name** (e.g. `my_field_list`) to avoid the merge-order collision.
+2. Add an Elasticsearch ingest pipeline `rename` processor to promote the staging array over the single-string value from the built-in handler.
+
+Confirmed on Open Crawler v0.3.0 – v1.0.0. v0.2.1 predates `data-elastic-name` support entirely.
+
+**Artifacts**
+
+- Sanitized pattern: [artifacts/crawler/data-elastic-name-arrays](artifacts/crawler/data-elastic-name-arrays/) — [README](artifacts/crawler/data-elastic-name-arrays/README.md), [open-crawler.yml](artifacts/crawler/data-elastic-name-arrays/open-crawler.yml), [ingest-pipeline.json](artifacts/crawler/data-elastic-name-arrays/ingest-pipeline.json), [diagnostics](artifacts/crawler/data-elastic-name-arrays/diagnostics.md)
+
+**References**
+
+- [elastic/crawler — `html.rb` `data_attributes_from_body` (v1.0.0)](https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/data/crawl_result/html.rb)
+- [elastic/crawler — `document_mapper.rb` merge order (v1.0.0)](https://github.com/elastic/crawler/blob/v1.0.0/lib/crawler/document_mapper.rb)
+- [Open Crawler extraction rules docs](https://github.com/elastic/crawler/blob/v1.0.0/docs/features/EXTRACTION_RULES.md)
+- [Elasticsearch ingest pipelines — rename processor](https://www.elastic.co/docs/reference/enrich-processor/rename-processor)
+- [docs/migration-overview.md](docs/migration-overview.md)
+
+---

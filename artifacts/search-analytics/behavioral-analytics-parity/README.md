@@ -17,13 +17,24 @@ Customers migrating the App Search / Elastic web crawler to [Open Crawler](https
 3. **OTel browser RUM is not the production BA replacement** — Elastic documents OpenTelemetry RUM as technical preview, not for production.
 4. **Parity is a build** — instrument the search UI, store events on an Elasticsearch data stream, report with ES|QL dashboards.
 
+## Reporting model (explicit)
+
+On 9.x there is **no Behavioral Analytics Kibana UI** and no collections app to “enable.” Analytics is:
+
+1. **Instrument** the search experience (and optionally the search API with EDOT).
+2. **Store** events (and optional traces) in Elasticsearch.
+3. **Report** with **ES|QL queries and Kibana dashboards** (plus optional alerts).
+
+There is nothing under a dedicated Analytics menu to turn on.
+
 ## Resolution pattern
 
 | Layer | What to do | Artifact |
 |-------|------------|----------|
 | ECH setup | Kibana space, scoped API keys, hot-only data stream, ingest API (no browser ES keys) | [ech-prerequisites.md](./ech-prerequisites.md) |
 | Collection | `page_view` / `search` / `search_click` contract + Search UI / custom hooks | [event-contract.md](./event-contract.md) |
-| Reporting | ES\|QL panels matching 8.19 BA + optional alerts | [esql-dashboard.md](./esql-dashboard.md) |
+| Reporting (parity) | ES\|QL **dashboards** matching 8.19 BA — not a product UI | [esql-dashboard.md](./esql-dashboard.md) |
+| Additional | Latency via EDOT/mOTLP; impressions, experiments, funnels, alerts | [additional-analytics.md](./additional-analytics.md) |
 | Cutover | Dual-run 8.19 BA → staging events → parity week → retire BA → 9.x | [cutover.md](./cutover.md) |
 
 ```text
@@ -36,7 +47,9 @@ Website / Search UI
  logs-search_analytics.events-*  (ECH data stream)
         │
         ▼
- Kibana ES|QL dashboards (CTR, top queries, no-results, …)
+ Kibana ES|QL queries + dashboards (CTR, top queries, no-results, …)
+        │  optional: EDOT search spans → mOTLP → traces-* (latency)
+        └─ still queries/dashboards — no BA Kibana app
 ```
 
 Open Crawler remains a **separate** path: customer infra → content indices → Search Application / Search UI connector.

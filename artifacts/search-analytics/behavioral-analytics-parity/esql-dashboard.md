@@ -2,7 +2,11 @@
 
 Build a Kibana dashboard against `logs-search_analytics.events-*` using **ES|QL** and standard visualizations (bar, pie, line — not Vega unless needed for network/sankey). Prefer Lens / Discover ES|QL mode. On Kibana 9.4+, dashboards can also be created via the declarative Dashboard API.
 
+**There is no Behavioral Analytics Kibana UI on 9.x.** These panels *are* the reporting surface: saved ES|QL queries and dashboard visualizations you create in a Kibana space. Nothing is “enabled” via an Analytics collections app.
+
 Data stream: `logs-search_analytics.events-*` (see [ech-prerequisites.md](./ech-prerequisites.md)).
+
+For **latency (EDOT)** and other expansions beyond BA parity, see [additional-analytics.md](./additional-analytics.md) — same model (queries/dashboards), different data (`traces-*` and/or extra event actions).
 
 ## Parity panel map
 

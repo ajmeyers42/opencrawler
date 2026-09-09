@@ -1,0 +1,19 @@
+{
+  "description": "Extract HTML element attribute values that Open Crawler cannot via XPath (TextNode-only limitation), then remove full_html to avoid index bloat. Requires full_html_extraction_enabled: true in the crawler config.",
+  "processors": [
+    {
+      "script": {
+        "description": "Regex-extract data-attribute-type from elements with class 'product-variant_list'. Adjust class name, attribute name, and target field for your site.",
+        "lang": "painless",
+        "source": "if (ctx.full_html == null) return;\ndef html = ctx.full_html;\ndef values = [];\n\n// Match both possible attribute orderings within the opening tag.\n// Adjust 'product-variant_list' and 'data-attribute-type' to your element and attribute.\ndef p1 = /class=['\""][^'\"]*product-variant_list[^'\"]*['\""][^>]*data-attribute-type=['\""]([^'\"]+)['\"]/;\ndef p2 = /data-attribute-type=['\""]([^'\"]+)['\""][^>]*class=['\""][^'\"]*product-variant_list[^'\"]*['\"]/;\n\nfor (def p : new def[]{p1, p2}) {\n  def m = p.matcher(html);\n  while (m.find()) {\n    def val = m.group(1);\n    if (!values.contains(val)) {\n      values.add(val);\n    }\n  }\n}\n\n// Write to target field only when values were found.\n// Replace 'pdp_variant_label' with your field name.\nif (!values.isEmpty()) {\n  ctx.pdp_variant_label = values;\n}"
+      }
+    },
+    {
+      "remove": {
+        "description": "Remove full_html after attribute extraction to avoid index bloat.",
+        "field": "full_html",
+        "ignore_missing": true
+      }
+    }
+  ]
+}
